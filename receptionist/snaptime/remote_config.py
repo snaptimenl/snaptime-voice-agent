@@ -14,7 +14,7 @@ logger = logging.getLogger("receptionist.snaptime")
 
 _GREETING_WITH_NAME = (
     "Goedendag, u spreekt met {name}, de klantenservice van Snaptime. "
-    "Belt u als ouder over een bestelling, of bent u fotograaf?"
+    "Belt u als klant, of bent u fotograaf?"
 )
 
 

@@ -28,7 +28,7 @@ class SnaptimeReceptionist(Receptionist):
 
     @function_tool()
     async def lookup_session_by_code(self, ctx: RunContext, code: str) -> str:
-        """Zoek de school en fotograaf op met de inlogcode van een ouder.
+        """Zoek de school of het event en de fotograaf op met de inlogcode van een klant.
 
         Args:
             code: de inlogcode van het inlogkaartje, exact zoals de beller die noemt (letters en cijfers).
@@ -46,12 +46,12 @@ class SnaptimeReceptionist(Receptionist):
     async def create_callback_request(
         self, ctx: RunContext, caller_name: str, callback_number: str, message: str,
     ) -> str:
-        """Leg een terugbelverzoek vast. Ouders worden door hun fotograaf teruggebeld, fotografen door Snaptime.
+        """Leg een terugbelverzoek vast. Klanten worden door hun fotograaf teruggebeld, fotografen door Snaptime.
 
         Args:
             caller_name: voornaam of naam van de beller.
             callback_number: telefoonnummer om op terug te bellen, ná bevestiging door de beller.
-            message: korte omschrijving van de vraag. GEEN namen van kinderen of andere persoonsgegevens.
+            message: korte omschrijving van de vraag. GEEN namen van personen op de foto's of andere persoonsgegevens.
         """
         return await self.toolkit.create_callback_request(caller_name, callback_number, message)
 

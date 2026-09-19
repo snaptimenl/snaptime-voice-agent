@@ -32,8 +32,8 @@ class SnaptimeToolkit:
             return _ENTITLEMENT_FALLBACK
         self.caller_kind = "ouder"
         return (
-            f"Code herkend: school '{res.get('schoolNaam')}', fotograaf '{res.get('photographerName')}'. "
-            "Bevestig dit kort aan de beller (alleen school en fotograaf, geen namen van kinderen) en vraag waarmee je kunt helpen."
+            f"Code herkend: school of event '{res.get('schoolNaam')}', fotograaf '{res.get('photographerName')}'. "
+            "Bevestig dit kort aan de beller (alleen school of event en fotograaf, geen namen van personen) en vraag waarmee je kunt helpen."
         )
 
     async def identify_photographer(self) -> str:
@@ -43,7 +43,7 @@ class SnaptimeToolkit:
         if res is None:
             return "Technische storing bij het herkennen van de beller."
         if not res.get("found"):
-            return "Dit nummer hoort niet bij een bekende fotograaf. Behandel de beller als ouder en vraag naar de inlogcode."
+            return "Dit nummer hoort niet bij een bekende fotograaf. Behandel de beller als klant en vraag naar de inlogcode."
         if not res.get("entitled"):
             return _ENTITLEMENT_FALLBACK
         self.caller_kind = "fotograaf"
