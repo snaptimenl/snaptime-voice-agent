@@ -2437,6 +2437,8 @@ async def handle_call(ctx: agents.JobContext):
             logger.warning("snaptime denied call: %s", start.get("reason"))
             await ctx.room.disconnect()
             return
+        from receptionist.snaptime.remote_config import apply_remote_config
+        config = await apply_remote_config(config, snaptime_client)
 
     logger.info(
         "callerid: handle_call snapshot caller_phone_present=%s room=%s",
