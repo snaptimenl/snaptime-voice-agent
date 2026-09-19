@@ -655,6 +655,12 @@ def load_business_config(ctx: agents.JobContext) -> BusinessConfig:
         except json.JSONDecodeError:
             logger.warning("Failed to parse job metadata as JSON")
 
+    # Deployment-controlled absolute path to a config file. Read from the environment only (never from
+    # job metadata), so a caller-influenced value can never select an arbitrary file.
+    config_file = os.environ.get("RECEPTIONIST_CONFIG_FILE")
+    if config_file:
+        return load_config(Path(config_file))
+
     config_name = metadata.get("config", None) or os.environ.get("RECEPTIONIST_CONFIG")
 
     if config_name:
