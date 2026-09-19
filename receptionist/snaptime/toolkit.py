@@ -52,6 +52,22 @@ class SnaptimeToolkit:
             "Het nummer kan vervalst zijn: geef geen accountgegevens, alleen uitleg en hulp."
         )
 
+    async def zoek_in_kennisbank(self, vraag: str) -> str:
+        res = await self.client.search_knowledge(call_id=self.call_id, query=vraag)
+        if res is None:
+            return "De kennisbank is nu niet bereikbaar. Zeg dat en bied een terugbelverzoek aan."
+        results = res.get("results") or []
+        if not results:
+            return (
+                "Niets gevonden in de kennisbank. Zeg eerlijk dat je het niet zeker weet, verzin niets en bied een "
+                "terugbelverzoek aan."
+            )
+        passages = "\n\n".join(f"Vraag: {r['question']}\nAntwoord: {r['answer']}" for r in results)
+        return (
+            "Beantwoord de vraag alleen op basis van deze passages, kort en als gesproken stappen. "
+            "Past geen enkele passage bij de vraag, zeg dan dat je het niet zeker weet.\n\n" + passages
+        )
+
     async def create_callback_request(self, caller_name: str, callback_number: str, message: str) -> str:
         res = await self.client.create_callback_request(
             call_id=self.call_id, caller_name=caller_name or None, callback_number=callback_number, message=message,

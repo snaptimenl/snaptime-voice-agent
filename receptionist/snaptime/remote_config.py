@@ -12,6 +12,8 @@ from receptionist.snaptime.client import SnaptimeClient
 
 logger = logging.getLogger("receptionist.snaptime")
 
+INLINE_LIMIT_CHARS = 6000
+
 _GREETING_WITH_NAME = (
     "Goedendag, u spreekt met {name}, de klantenservice van Snaptime. "
     "Belt u als klant, of bent u fotograaf?"
@@ -35,10 +37,14 @@ async def apply_remote_config(config: BusinessConfig, client: SnaptimeClient) ->
 
     if knowledge:
         ouder = [(k["question"], k["answer"]) for k in knowledge if k["audience"] in ("ouder", "beide")]
-        fotograaf = [(k["question"], k["answer"]) for k in knowledge if k["audience"] in ("fotograaf", "beide")]
     else:
-        yaml_faqs = [(f.question, f.answer) for f in config.faqs]
-        ouder = fotograaf = yaml_faqs
+        ouder = [(f.question, f.answer) for f in config.faqs]
+    # Fotograaf-kennis komt nooit in de prompt: die is alleen via zoek_in_kennisbank op te halen, waar de server
+    # afdwingt dat alleen een herkende fotograaf erbij kan. Klantkennis staat inline zolang die klein genoeg is
+    # (sneller, geen zoekstap); is die groot, dan wordt hij ook alleen via de zoek-tool gegeven.
+    ouder_text = _format(ouder)
+    if len(ouder_text) > INLINE_LIMIT_CHARS:
+        ouder_text = "Zie zoek_in_kennisbank."
 
     update: dict = {}
     if greeting:
@@ -51,8 +57,8 @@ async def apply_remote_config(config: BusinessConfig, client: SnaptimeClient) ->
             config.system_prompt
             .replace("{agent_name_line}", f"Je naam is {name}." if name else "")
             .replace("{extra}", f"EXTRA INSTRUCTIES VAN DE BEHEERDER\n{extra}" if extra else "")
-            .replace("{faqs_ouder}", _format(ouder))
-            .replace("{faqs_fotograaf}", _format(fotograaf))
+            .replace("{faqs_ouder}", ouder_text)
+            .replace("{faqs_fotograaf}", "Zie zoek_in_kennisbank.")
         )
     # Keep the YAML faqs out of the prompt's plain {faqs} placeholder when knowledge comes from the API.
     if knowledge:

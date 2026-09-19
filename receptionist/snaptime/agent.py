@@ -43,6 +43,16 @@ class SnaptimeReceptionist(Receptionist):
         return await self.toolkit.identify_photographer()
 
     @function_tool()
+    async def zoek_in_kennisbank(self, ctx: RunContext, vraag: str) -> str:
+        """Zoek in de kennisbank/handleiding het antwoord op een vraag over Snaptime. Gebruik dit voor elke vraag
+        waarvan het antwoord niet al in je instructies staat.
+
+        Args:
+            vraag: de vraag van de beller in een paar woorden, bijvoorbeeld "gratis verzenden instellen".
+        """
+        return await self.toolkit.zoek_in_kennisbank(vraag)
+
+    @function_tool()
     async def create_callback_request(
         self, ctx: RunContext, caller_name: str, callback_number: str, message: str,
     ) -> str:

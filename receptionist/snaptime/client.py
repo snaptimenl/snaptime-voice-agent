@@ -39,6 +39,9 @@ class SnaptimeClient:
     async def get_config(self) -> dict[str, Any] | None:
         return await self._request("GET", "/api/ai/config", None)
 
+    async def search_knowledge(self, *, call_id: str, query: str) -> dict[str, Any] | None:
+        return await self._request("POST", "/api/ai/tools/search-knowledge", {"callId": call_id, "query": query})
+
     async def start_call(self, *, call_id: str, phone_number: str | None, caller_number: str | None, engine: str) -> dict[str, Any] | None:
         return await self._request("POST", "/api/ai/calls", {
             "externalCallId": call_id, "phoneNumber": phone_number, "callerNumber": caller_number, "engine": engine,
