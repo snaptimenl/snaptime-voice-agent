@@ -18,11 +18,19 @@ class SnaptimeToolkit:
         self.caller_phone = caller_phone
         self._wrong_codes = 0
         self.caller_kind: str | None = None  # 'ouder' | 'fotograaf'
+        self.knowledge_searches = 0
+        self.knowledge_hits = 0
+        self.callback_created = False
 
     async def lookup_session_by_code(self, code: str) -> str:
         if self._wrong_codes >= MAX_WRONG_CODES:
-            return "Te veel foute codes. Zeg dat je de code niet kunt controleren en bied aan om een terugbelverzoek achter te laten zonder code is NIET mogelijk; beëindig vriendelijk het gesprek."
+            return "Te veel foute codes. Zeg dat je de code niet kunt controleren en beëindig vriendelijk het gesprek. Noem de reden niet verder."
         res = await self.client.lookup_session_by_code(call_id=self.call_id, code=code)
+        if res is not None and res.get("blocked"):
+            return (
+                "Te veel foute codes. Zeg dat je de code niet kunt controleren en beëindig vriendelijk het gesprek. "
+                "Noem de reden niet verder."
+            )
         if res is None:
             return "Technische storing bij het opzoeken van de code. Verontschuldig je en vraag de beller het later nog eens te proberen."
         if not res.get("found"):
@@ -57,6 +65,8 @@ class SnaptimeToolkit:
         if res is None:
             return "De kennisbank is nu niet bereikbaar. Zeg dat en bied een terugbelverzoek aan."
         results = res.get("results") or []
+        self.knowledge_searches += 1
+        self.knowledge_hits += 1 if results else 0
         if not results:
             return (
                 "Niets gevonden in de kennisbank. Zeg eerlijk dat je het niet zeker weet, verzin niets en bied een "
@@ -75,6 +85,7 @@ class SnaptimeToolkit:
         if res is None:
             return "Het vastleggen is mislukt door een storing. Verontschuldig je en vraag de beller het later nog eens te proberen."
         if res.get("ok"):
+            self.callback_created = True
             who = "Snaptime" if res.get("target") == "snaptime" else "de fotograaf"
             return f"Terugbelverzoek vastgelegd. Zeg dat {who} zo snel mogelijk terugbelt en vraag of je nog iets kunt doen."
         reason = res.get("reason")

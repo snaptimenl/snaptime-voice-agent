@@ -2728,11 +2728,8 @@ async def handle_call(ctx: agents.JobContext):
             except Exception:
                 logger.exception("lifecycle.on_call_ended raised")
             if snaptime_client is not None:
-                await snaptime_client.end_call(
-                    lifecycle.metadata.call_id,
-                    endedAt=datetime.now(timezone.utc).isoformat(),
-                    durationSec=round(time.monotonic() - getattr(receptionist, "started_at", time.monotonic())),
-                )
+                from receptionist.snaptime.finish import finish_call
+                await finish_call(snaptime_client, receptionist, lifecycle.metadata.call_id)
 
         _create_background_task(_run())
 
