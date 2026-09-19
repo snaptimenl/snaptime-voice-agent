@@ -10,7 +10,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Literal, Optional
 from zoneinfo import ZoneInfo
@@ -689,6 +689,16 @@ def _get_caller_identity(ctx: agents.JobContext) -> str:
         return fallback
     logger.warning("No SIP participant found in room %s", ctx.room.name)
     return ""
+
+
+def _get_dialed_number(ctx: agents.JobContext) -> str | None:
+    """Number the caller dialed, from the SIP trunk attributes (None when unavailable)."""
+    for participant in ctx.room.remote_participants.values():
+        attrs = getattr(participant, "attributes", {}) or {}
+        number = attrs.get("sip.trunkPhoneNumber")
+        if number:
+            return number
+    return None
 
 
 def _get_caller_phone(ctx: agents.JobContext) -> str | None:
@@ -2407,6 +2417,21 @@ async def handle_call(ctx: agents.JobContext):
     )
     _trace_stage("after_lifecycle_init", lifecycle.metadata.call_id)
 
+    # Snaptime deployment: enabled when SNAPTIME_API_BASE + AI_SERVICE_TOKEN are set.
+    from receptionist.snaptime.client import SnaptimeClient
+    snaptime_client = SnaptimeClient.from_env()
+    if snaptime_client is not None:
+        start = await snaptime_client.start_call(
+            call_id=lifecycle.metadata.call_id,
+            phone_number=_get_dialed_number(ctx),
+            caller_number=lifecycle.metadata.caller_phone,
+            engine=f"openai-realtime:{config.voice.model}",
+        )
+        if start is not None and start.get("allowed") is False:
+            logger.warning("snaptime denied call: %s", start.get("reason"))
+            await ctx.room.disconnect()
+            return
+
     logger.info(
         "callerid: handle_call snapshot caller_phone_present=%s room=%s",
         lifecycle.metadata.caller_phone is not None, ctx.room.name,
@@ -2473,7 +2498,11 @@ async def handle_call(ctx: agents.JobContext):
 
     # Build the Receptionist BEFORE wiring its event listeners so we can
     # also subscribe to session events the agent needs (issue #11).
-    receptionist = Receptionist(config, lifecycle)
+    if snaptime_client is not None:
+        from receptionist.snaptime.agent import SnaptimeReceptionist
+        receptionist = SnaptimeReceptionist(config, lifecycle, snaptime_client)
+    else:
+        receptionist = Receptionist(config, lifecycle)
     _verify_tool_contract(receptionist, call_id=lifecycle.metadata.call_id)
     session.on("user_input_transcribed", receptionist._on_user_input_transcribed)
     session.on("function_tools_executed", receptionist._on_function_tools_executed)
@@ -2690,6 +2719,12 @@ async def handle_call(ctx: agents.JobContext):
                 await lifecycle.on_call_ended()
             except Exception:
                 logger.exception("lifecycle.on_call_ended raised")
+            if snaptime_client is not None:
+                await snaptime_client.end_call(
+                    lifecycle.metadata.call_id,
+                    endedAt=datetime.now(timezone.utc).isoformat(),
+                    durationSec=round(time.monotonic() - getattr(receptionist, "started_at", time.monotonic())),
+                )
 
         _create_background_task(_run())
 

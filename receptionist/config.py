@@ -936,6 +936,9 @@ class BusinessConfig(BaseModel):
     agent: AgentConfig = Field(default_factory=AgentConfig)
     info_packets: InfoPacketsConfig | None = None
     dtmf: DtmfConfig | None = None
+    # Full replacement for the generated system prompt (Snaptime deployment). May contain the
+    # placeholders {business_name} and {faqs}.
+    system_prompt: str | None = None
 
     @model_validator(mode="after")
     def _dtmf_transfer_routing_must_exist(self) -> BusinessConfig:

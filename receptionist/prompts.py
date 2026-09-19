@@ -236,6 +236,13 @@ def _build_dtmf_block(config: BusinessConfig) -> str:
 
 
 def build_system_prompt(config: BusinessConfig) -> str:
+    if config.system_prompt:
+        faqs = "\n\n".join(f"V: {f.question}\nA: {f.answer}" for f in config.faqs) or "Geen."
+        return (
+            config.system_prompt
+            .replace("{business_name}", config.business.name)
+            .replace("{faqs}", faqs)
+        )
     hours_lines = []
     for day_name in [
         "monday", "tuesday", "wednesday", "thursday",
